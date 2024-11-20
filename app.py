@@ -9,43 +9,34 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_absolute_error, r2_score
 
-# Load pre-trained LSTM model
+# Loading pretrained
 model = load_model('keras_model.h5')
 
-# Set the start and end date for the stock data
+
 START = "2010-01-01"
 TODAY = dt.date.today().strftime("%Y-%m-%d")
 
-# Function to load stock data
+
 def load_data(ticker):
     data = yf.download(ticker, START, TODAY)
     data.reset_index(inplace=True)
     return data
 
-# Streamlit UI
+#  streamlit
 st.title("Stock Price Prediction with LSTM")
 st.write("This app uses an LSTM model to predict stock prices based on historical data.")
 
-# User input for stock ticker
+
 ticker = st.text_input("Enter Stock Ticker (e.g., TCS.NS):", "TCS.NS")
 
 if ticker:
-    # Load and display stock data
+    
     data = load_data(ticker)
     st.subheader(f"Showing data for {ticker}")
     st.write(data.tail())
 
-    # Plot stock closing price
-    # st.subheader("Stock Closing Price")
-    # fig, ax = plt.subplots(figsize=(12, 6))
-    # ax.plot(data['Close'])
-    # ax.set_title(f"{ticker} Stock Price")
-    # ax.set_xlabel("Date")
-    # ax.set_ylabel("Price (INR)")
-    # ax.grid(True)
-    # st.pyplot(fig)
-
-    # Preprocessing data for prediction
+    
+    # Preprocessing
     df = data.drop(['Date', 'Adj Close'], axis=1)
     train = pd.DataFrame(data[0:int(len(data)*0.70)])
     test = pd.DataFrame(data[int(len(data)*0.70): int(len(data))])
@@ -79,23 +70,14 @@ if ticker:
 
     x_test, y_test = np.array(x_test), np.array(y_test)
 
-    # Making predictions with the trained model
+    #  trained model
     y_pred = model.predict(x_test)
 
     # Rescale predictions and test values back to the original scale
     y_pred = scaler.inverse_transform(y_pred)
     y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-    # Plot predictions vs actual prices
-    # st.subheader("Predicted vs Actual Prices")
-    # fig, ax = plt.subplots(figsize=(12, 6))
-    # ax.plot(y_test, 'b', label="Original Price")
-    # ax.plot(y_pred, 'r', label="Predicted Price")
-    # ax.set_xlabel('Time')
-    # ax.set_ylabel('Price')
-    # ax.legend()
-    # ax.grid(True)
-    # st.pyplot(fig)
+   
 
     # Calculate Mean Absolute Error and R2 Score
     mae = mean_absolute_error(y_test, y_pred)
@@ -106,26 +88,9 @@ if ticker:
     st.write(f"Mean Absolute Error: {mae_percentage:.2f}%")
     st.write(f"R2 Score: {r2:.2f}")
 
-    # Plotting R2 score
-    # fig, ax = plt.subplots()
-    # ax.barh(0, r2, color='skyblue')
-    # ax.set_xlim([-1, 1])
-    # ax.set_yticks([])
-    # ax.set_xlabel('R2 Score')
-    # ax.set_title('R2 Score')
-    # ax.text(r2, 0, f'{r2:.2f}', va='center', color='black')
-    # st.pyplot(fig)
+   
 
-    # Scatter plot of actual vs predicted values
-    # fig, ax = plt.subplots()
-    # ax.scatter(y_test, y_pred)
-    # ax.plot([min(y_test), max(y_test)], [min(y_pred), max(y_pred)], 'r--')
-    # ax.set_xlabel('Actual Values')
-    # ax.set_ylabel('Predicted Values')
-    # ax.set_title(f'R2 Score: {r2:.2f}')
-    # st.pyplot(fig)
-
-    # Predicting next 7 days' prices
+    # Predicting
     st.subheader("Next 7 Days Closing Price Prediction")
     
     # Start with the last 100 days from the test data
@@ -133,23 +98,23 @@ if ticker:
     predicted_prices = []
 
     for _ in range(7):
-        # Prepare the input for prediction
+        
         input_seq = np.expand_dims(last_100_days, axis=0)
         next_pred = model.predict(input_seq)[0][0]
 
-        # Append the predicted value and update the sequence
+        # append predict value then updating sequence
         predicted_prices.append(next_pred)
         last_100_days = np.append(last_100_days[1:], [[next_pred]], axis=0)
     
     # Rescale the predictions to the original scale
     predicted_prices = scaler.inverse_transform(np.array(predicted_prices).reshape(-1, 1)).flatten()
     
-    # Display the predicted prices
+    # Displaying prediction
     future_dates = pd.date_range(data['Date'].iloc[-1] + pd.Timedelta(days=1), periods=7).strftime("%Y-%m-%d")
     next_7_days_df = pd.DataFrame({"Date": future_dates, "Predicted Price": predicted_prices})
     st.write(next_7_days_df)
 
-    # Plot the predictions
+    # Plot 
     st.subheader("Next 7 Days Predicted Prices")
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.plot(future_dates, predicted_prices, marker='o', linestyle='-', color='orange')
@@ -159,5 +124,3 @@ if ticker:
     ax.grid(True)
     st.pyplot(fig)
 
-# Run the Streamlit app using the command:
-# streamlit run app.py
